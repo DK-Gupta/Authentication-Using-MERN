@@ -1,6 +1,7 @@
  import bcrypt from 'bcryptjs';
  import jwt from 'jsonwebtoken';
 import userModel from '../config/userModel.js';
+import transporter from '../config/nodemailer.js';
 
 export const register = async(req, res) =>{
     const {name, email, password} = req.body;
@@ -29,7 +30,7 @@ export const register = async(req, res) =>{
         });
         
     } catch (error) {
-        res.json({success: false, message: error.message})
+        return res.json({success: false, message: error.message})
         
     }
 }
@@ -45,13 +46,13 @@ export const login = async(req, res)=>{
         const user = await userModel.findOne({email});
 
         if(!user){
-            res.json({success: false, message: "Invailid mail..."})
+            return res.json({success: false, message: "Invailid mail..."})
         }
         
         const isMatch = await bcrypt.compare(password, user.password);
 
         if(!isMatch){
-            res.json({success: false, message: 'Invalid Password please enter again...'})
+            return res.json({success: false, message: 'Invalid Password please enter again...'})
         }
 
         const token = jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn:'7d'});
@@ -63,30 +64,50 @@ export const login = async(req, res)=>{
             maxAge: 7 * 24 * 60 * 60 * 1000
 
         });
+        // Sending otp mail
+        const mailOption = {
+            from: process.env.SENDER_EMAIL ,
+            to: email,
+            subject: 'Welcome to DK site',
+            text: `Welcome to DK's site , your account is created using this email id: ${email}`
+        }
+        try {
+            await transporter.sendMail(mailOption);
+            
+        } catch (error) {
+            return res.json({success: false, message: "Cannot send mail"})
+            
+        }
+        
 
-        return res.json({success:true});
+        return res.json({success:true, message: "Login succesfull"});
 
     } catch (error) {
-        res.json({success: false, message: error.message})
+        return res.json({success: false, message: error.message});
         
     }
-}
+};
 
 export const logOut = async (req, res)=>{
     try {
+
+
+        const token = req.cookie.token;
+
+        if (!token) {
+            return res.status(400).json({ success: false, message: 'No token found' });
+        }
         res.clearCookie('token',token,{
             httponly: true,
             secure: process.env.NODE_ENV ==='Production',
             sameSite: process.env.NODE_ENV === 'Production' ? 'none' : 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-
         });
 
-        return res.json({success: true, message: 'Logged Out'})
+        return res.json({success: true, message: 'Logged Out'});
 
         
     } catch (error) {
-        res.json({success:false, message: error.message})
+        return res.json({success:false, message: error.message})
         
     }
 
