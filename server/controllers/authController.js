@@ -92,7 +92,7 @@ export const logOut = async (req, res)=>{
     try {
 
 
-        const token = req.cookie.token;
+        const token = req.cookies.token;
 
         if (!token) {
             return res.status(400).json({ success: false, message: 'No token found' });
