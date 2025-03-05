@@ -168,8 +168,9 @@ export const verifyEmail = async(req, res)=>{
         user.verifyOtp = '';
         user.verifyOtpExpireAt = 0;
 
+        user.markModified("isAccountVerified");
         await user.save();
-        return res.json({success: true, message: "Email verifyied succesfully"
+        return res.json({success: true, message: "Email verified succesfully"
         })
     } catch (error) {
         return res.json({success: false, message: error.message})
